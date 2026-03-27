@@ -5,6 +5,7 @@ let state = {
   groups: [],
   activeGroupId: null,
   results: [],
+  notes: [],
   editingGroupId: null,
   editingPatternId: null,
   pendingDeleteType: null,
@@ -22,16 +23,18 @@ document.addEventListener('DOMContentLoaded', async () => {
   setupDeleteModal();
   setupExtractButton();
   setupResultsButtons();
+  setupNotesButtons();
   setupModalClose();
   render();
 });
 
 // ─── Storage ──────────────────────────────────────────────────────────────────
 async function loadStorage() {
-  const data = await browser.storage.local.get(['groups', 'activeGroupId', 'results']);
+  const data = await browser.storage.local.get(['groups', 'activeGroupId', 'results', 'notes']);
   state.groups = data.groups || [];
   state.activeGroupId = data.activeGroupId || (state.groups[0]?.id ?? null);
   state.results = data.results || [];
+  state.notes = data.notes || [];
 }
 
 async function saveStorage() {
@@ -39,6 +42,7 @@ async function saveStorage() {
     groups: state.groups,
     activeGroupId: state.activeGroupId,
     results: state.results,
+    notes: state.notes,
   });
 }
 
@@ -47,7 +51,9 @@ function render() {
   renderGroups();
   renderPatterns();
   renderResults();
+  renderNotes();
   updateResultsTabBadge();
+  updateNotesTabBadge();
 }
 
 function renderGroups() {
@@ -169,11 +175,14 @@ function renderPatterns() {
 const collapsedGroups = new Set();
 // Current search query
 let searchQuery = '';
+let searchQueryNotes = '';
 // Pagination: how many matches to show per pattern group
 const BATCH_SIZE = 50;
 const displayLimits = {};  // patternId → number of matches shown
+let notesDisplayLimit = BATCH_SIZE;
 // Flag to ensure delegated listener is attached only once
 let resultsDelegated = false;
+let notesDelegated = false;
 
 function renderResults() {
   const list = document.getElementById('results-list');
@@ -257,6 +266,11 @@ function renderResults() {
                   <path d="M3 8H2a1 1 0 01-1-1V2a1 1 0 011-1h5a1 1 0 011 1v1" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
                 </svg>
               </button>
+              <button class="match-copy-btn save-note-btn" data-val="${escHtml(displayVal)}" data-src="${escHtml(m.source)}" data-regex="${escHtml(r.patternRegex)}" data-desc="${escHtml(r.description)}" title="Save to Notes">
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                  <path d="M2.5 10.5l3.5-2 3.5 2V2a1 1 0 00-1-1h-5a1 1 0 00-1 1v8.5z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/>
+                </svg>
+              </button>
               <button class="match-copy-btn" data-copy="${escHtml(displayVal)}" title="Copy value">
                 <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
                   <rect x="4" y="4" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.2"/>
@@ -309,6 +323,26 @@ function handleResultsClick(e) {
     const pid = showMoreBtn.dataset.patternId;
     displayLimits[pid] = (displayLimits[pid] || BATCH_SIZE) + BATCH_SIZE;
     renderResults();
+    return;
+  }
+
+  // --- Save note button ---
+  const saveNoteBtn = e.target.closest('.save-note-btn');
+  if (saveNoteBtn) {
+    e.stopPropagation();
+    const note = {
+      id: 'n-' + Date.now(),
+      value: saveNoteBtn.dataset.val,
+      source: saveNoteBtn.dataset.src,
+      regex: saveNoteBtn.dataset.regex,
+      desc: saveNoteBtn.dataset.desc,
+      timestamp: Date.now()
+    };
+    state.notes.unshift(note);
+    saveStorage();
+    showToast('Saved to Notes!', 'success');
+    renderNotes();
+    updateNotesTabBadge();
     return;
   }
 
@@ -372,6 +406,196 @@ function updateResultsTabBadge() {
     badge.textContent = total > 99 ? '99+' : total;
     tab.appendChild(badge);
   }
+}
+
+function updateNotesTabBadge() {
+  const tab = document.querySelector('[data-tab="notes"]');
+  if (!tab) return;
+  const total = state.notes.length;
+  const existing = tab.querySelector('.badge');
+  if (existing) existing.remove();
+  if (total > 0) {
+    const badge = document.createElement('span');
+    badge.className = 'badge';
+    badge.textContent = total > 99 ? '99+' : total;
+    tab.appendChild(badge);
+  }
+}
+
+function renderNotes() {
+  const list = document.getElementById('notes-list');
+  const toolbar = document.getElementById('notes-toolbar');
+  const countEl = document.getElementById('notes-count');
+
+  if (!state.notes || state.notes.length === 0) {
+    toolbar.style.display = 'none';
+    list.innerHTML = `
+      <div class="empty-state results-empty">
+        <svg width="32" height="32" viewBox="0 0 32 32" fill="none" opacity="0.3">
+          <path d="M4 6h24v20H4z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" />
+          <path d="M10 12h12M10 16h8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+        </svg>
+        <span>No notes saved. Click the bookmark icon in Results to save.</span>
+      </div>`;
+    return;
+  }
+
+  toolbar.style.display = 'flex';
+
+  const q = searchQueryNotes.toLowerCase().trim();
+
+  // Filter notes
+  const filteredNotes = q ? state.notes.filter(n => {
+    return (n.value || '').toLowerCase().includes(q) || 
+           (n.source || '').toLowerCase().includes(q) ||
+           (n.desc || '').toLowerCase().includes(q) ||
+           (n.regex || '').toLowerCase().includes(q);
+  }) : state.notes;
+
+  countEl.textContent = q
+    ? `${filteredNotes.length} of ${state.notes.length} note${state.notes.length !== 1 ? 's' : ''}`
+    : `${state.notes.length} note${state.notes.length !== 1 ? 's' : ''}`;
+
+  const visibleCount = filteredNotes.length;
+  const limit = notesDisplayLimit || BATCH_SIZE;
+  const paginated = filteredNotes.slice(0, limit);
+  const remaining = visibleCount - limit;
+
+  let contentRows;
+  if (visibleCount > 0) {
+    contentRows = paginated.map(n => {
+      const srcLabel = formatSourceLabel(n.source);
+      const isInline = n.source.startsWith('inline-script');
+      const highlightedVal = q ? highlightMatch(n.value, q) : escHtml(n.value);
+      return `
+        <div class="note-card" data-id="${n.id}">
+          <div class="note-header">
+             <span class="note-regex" title="${escHtml(n.regex)}">${escHtml(n.regex)}</span>
+             <span class="note-desc" title="${escHtml(n.desc)}">${escHtml(n.desc)}</span>
+          </div>
+          <div class="match-row standalone">
+            <span class="match-value" title="${escHtml(n.value)}">${highlightedVal}</span>
+            <button class="match-source-btn ${isInline ? 'is-inline' : ''}" data-copy-src="${escHtml(n.source)}" title="${escHtml(n.source)}">
+              <span class="match-source-label">${escHtml(srcLabel)}</span>
+              <svg class="src-copy-icon" width="10" height="10" viewBox="0 0 12 12" fill="none">
+                <rect x="4" y="4" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.2"/>
+                <path d="M3 8H2a1 1 0 01-1-1V2a1 1 0 011-1h5a1 1 0 011 1v1" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+              </svg>
+            </button>
+            <!-- copy button -->
+            <button class="match-copy-btn" data-copy="${escHtml(n.value)}" title="Copy value">
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                <rect x="4" y="4" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.2"/>
+                <path d="M3 8H2a1 1 0 01-1-1V2a1 1 0 011-1h5a1 1 0 011 1v1" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+              </svg>
+            </button>
+            <!-- delete button -->
+            <button class="note-del-btn" data-id="${n.id}" title="Delete note">
+              <svg width="14" height="14" viewBox="0 0 12 12" fill="none">
+                <path d="M2 3h8M5 3V2h2v1M4 3v6h4V3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
+          </div>
+        </div>`;
+    }).join('');
+    
+    if (remaining > 0) {
+      contentRows += `
+        <button class="show-more-notes-btn">
+          Show more (${remaining} remaining)
+        </button>`;
+    }
+  } else {
+    contentRows = `<div class="no-matches">No notes for "${escHtml(q)}"</div>`;
+  }
+
+  list.innerHTML = contentRows;
+
+  if (!notesDelegated) {
+    notesDelegated = true;
+    list.addEventListener('click', handleNotesClick);
+  }
+}
+
+function handleNotesClick(e) {
+  // --- Show more ---
+  const showMoreBtn = e.target.closest('.show-more-notes-btn');
+  if (showMoreBtn) {
+    notesDisplayLimit += BATCH_SIZE;
+    renderNotes();
+    return;
+  }
+
+  // --- Copy match value ---
+  const copyBtn = e.target.closest('.match-copy-btn');
+  if (copyBtn) {
+    e.stopPropagation();
+    navigator.clipboard.writeText(copyBtn.dataset.copy);
+    showToast('Value copied!', 'success');
+    return;
+  }
+
+  // --- Copy source URL ---
+  const srcBtn = e.target.closest('.match-source-btn');
+  if (srcBtn) {
+    e.stopPropagation();
+    if (srcBtn.classList.contains('is-inline')) {
+      showToast('Inline script — no URL', 'error');
+      return;
+    }
+    navigator.clipboard.writeText(srcBtn.dataset.copySrc);
+    showToast('Source URL copied!', 'success');
+    return;
+  }
+  
+  // --- Delete note ---
+  const delBtn = e.target.closest('.note-del-btn');
+  if (delBtn) {
+    e.stopPropagation();
+    openDeleteModal('note', delBtn.dataset.id, null);
+    return;
+  }
+}
+
+function setupNotesButtons() {
+  const searchInput = document.getElementById('notes-search');
+  const searchClear = document.getElementById('notes-search-clear');
+
+  searchInput.addEventListener('input', () => {
+    searchQueryNotes = searchInput.value;
+    searchClear.style.display = searchQueryNotes ? 'flex' : 'none';
+    notesDisplayLimit = BATCH_SIZE;
+    renderNotes();
+  });
+
+  searchClear.addEventListener('click', () => {
+    searchInput.value = '';
+    searchQueryNotes = '';
+    searchClear.style.display = 'none';
+    searchInput.focus();
+    renderNotes();
+  });
+
+  document.getElementById('btn-copy-all-notes').addEventListener('click', () => {
+    const q = searchQueryNotes.toLowerCase().trim();
+    const filtered = q ? state.notes.filter(n => {
+      return (n.value || '').toLowerCase().includes(q) || 
+             (n.source || '').toLowerCase().includes(q) ||
+             (n.desc || '').toLowerCase().includes(q) ||
+             (n.regex || '').toLowerCase().includes(q);
+    }) : state.notes;
+    
+    if (!filtered.length) { showToast('Nothing to copy', 'error'); return; }
+    
+    const lines = filtered.map(n => `[${n.regex} - ${n.desc}] ${n.value} (${n.source})`);
+    navigator.clipboard.writeText(lines.join('\n'));
+    showToast('Copied all notes!', 'success');
+  });
+
+  document.getElementById('btn-clear-notes').addEventListener('click', () => {
+    if (state.notes.length === 0) return;
+    openDeleteModal('all-notes', null, null);
+  });
 }
 
 // ─── Tabs ─────────────────────────────────────────────────────────────────────
@@ -500,12 +724,20 @@ function openDeleteModal(type, id, parentId) {
     document.getElementById('modal-delete-title').textContent = 'Delete group?';
     document.getElementById('modal-delete-desc').textContent =
       `"${g?.name}" and all its patterns will be permanently removed.`;
-  } else {
+  } else if (type === 'pattern') {
     const g = activeGroup();
     const p = g?.patterns.find(p => p.id === id);
     document.getElementById('modal-delete-title').textContent = 'Delete pattern?';
     document.getElementById('modal-delete-desc').textContent =
       `The pattern "${p?.regex}" will be permanently removed.`;
+  } else if (type === 'note') {
+    document.getElementById('modal-delete-title').textContent = 'Delete note?';
+    document.getElementById('modal-delete-desc').textContent =
+      `This note will be permanently removed.`;
+  } else if (type === 'all-notes') {
+    document.getElementById('modal-delete-title').textContent = 'Clear all notes?';
+    document.getElementById('modal-delete-desc').textContent =
+      `All saved notes will be permanently removed.`;
   }
   showModal('modal-delete');
 }
@@ -517,9 +749,17 @@ function setupDeleteModal() {
       if (state.activeGroupId === state.pendingDeleteId) {
         state.activeGroupId = state.groups[0]?.id ?? null;
       }
-    } else {
+    } else if (state.pendingDeleteType === 'pattern') {
       const g = state.groups.find(g => g.id === state.pendingDeleteParentId);
       if (g) g.patterns = g.patterns.filter(p => p.id !== state.pendingDeleteId);
+    } else if (state.pendingDeleteType === 'note') {
+      state.notes = state.notes.filter(n => n.id !== state.pendingDeleteId);
+    } else if (state.pendingDeleteType === 'all-notes') {
+      state.notes = [];
+      searchQueryNotes = '';
+      document.getElementById('notes-search').value = '';
+      document.getElementById('notes-search-clear').style.display = 'none';
+      notesDisplayLimit = BATCH_SIZE;
     }
     saveStorage();
     closeModal('modal-delete');

@@ -49,6 +49,7 @@
     <div class="tab-bar">
       <button class="tab active" data-tab="groups">Groups</button>
       <button class="tab" data-tab="results">Results</button>
+      <button class="tab" data-tab="notes">Notes</button>
     </div>
 
     <!-- === GROUPS TAB === -->
@@ -120,6 +121,32 @@
           </svg>
           <span>No results yet. Run extraction from the Groups tab.</span>
         </div>
+      </div>
+    </div>
+
+    <!-- === NOTES TAB === -->
+    <div id="tab-notes" class="tab-content">
+      <div class="results-toolbar" id="notes-toolbar" style="display:none">
+        <div class="search-wrap">
+          <svg class="search-icon" width="12" height="12" viewBox="0 0 12 12" fill="none">
+            <circle cx="5" cy="5" r="3.5" stroke="currentColor" stroke-width="1.2" />
+            <path d="M8 8l2.5 2.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" />
+          </svg>
+          <input class="search-input" id="notes-search" type="text" placeholder="Search notes…" autocomplete="off" spellcheck="false" />
+          <button class="search-clear" id="notes-search-clear" style="display:none" title="Clear">
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+              <path d="M1.5 1.5l7 7M8.5 1.5l-7 7" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" />
+            </svg>
+          </button>
+        </div>
+        <div class="toolbar-actions">
+          <span class="results-count" id="notes-count"></span>
+          <button class="text-btn" id="btn-copy-all-notes">Copy all</button>
+          <button class="text-btn" id="btn-clear-notes">Clear all</button>
+        </div>
+      </div>
+      <div class="results-list" id="notes-list">
+        <!-- Notes rendered here by JS -->
       </div>
     </div>
 

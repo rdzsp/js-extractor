@@ -34,6 +34,7 @@ JS Extractor scans **all JavaScript sources** on the current page — both inlin
 - **Copy Anywhere** — Copy individual values, source URLs, or all results at once
 - **Collapsible Results** — Results grouped by pattern with expand/collapse
 - **Paginated Results** — Handles 1000+ matches smoothly with "Show more" pagination
+- **Saved Notes** — Bookmark matches directly to a persistent Notes tab for later review
 - **Fully Customizable** — Create, edit, and delete your own groups and patterns
 - **Dark Theme** — Premium dark UI built for long sessions
 
@@ -45,6 +46,10 @@ JS Extractor scans **all JavaScript sources** on the current page — both inlin
 
 <p align="center">
   <img src="docs/screenshot2.png" alt="JS Extractor Screenshot" width="400" />
+</p>
+
+<p align="center">
+  <img src="docs/screenshot3.png" alt="JS Extractor Screenshot" width="400" />
 </p>
 
 ## Installation
@@ -68,6 +73,7 @@ JS Extractor scans **all JavaScript sources** on the current page — both inlin
 3. **Select** a pattern group (Endpoints / URLs or Secret Text) or create your own
 4. **Click** "Extract from page"
 5. **Browse** the results — search, copy values, copy source URLs
+6. **Save to Notes** — click the bookmark icon next to any interesting match to automatically save it to your persistent Notes tab
 
 ### Creating Custom Patterns
 
