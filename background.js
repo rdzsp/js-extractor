@@ -33,6 +33,11 @@ browser.runtime.onInstalled.addListener(() => {
             id: 'endpoint-file',
             regex: `(?:"|')([a-zA-Z0-9_\\-]+\\.(?:php|asp|aspx|jsp|json|action|html|js|txt|xml)(?:[?#][^"' ]*)?)(?:"|')`,
             description: 'Standalone files'
+          },
+          {
+            id: 'endpoint-template-literal',
+            regex: '`((?:[^`]*\\$\\{[^}]+\\})+[a-zA-Z0-9_\\-/]*(?:\\/[a-zA-Z0-9_\\-/]*)*(?:[?#][^`]*)?)`',
+            description: 'Template literal endpoints with ${} expressions'
           }
         ]
       }
