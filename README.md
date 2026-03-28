@@ -35,6 +35,7 @@ JS Extractor scans **all JavaScript sources** on the current page — both inlin
 - **Collapsible Results** — Results grouped by pattern with expand/collapse
 - **Paginated Results** — Handles 1000+ matches smoothly with "Show more" pagination
 - **Saved Notes** — Bookmark matches directly to a persistent Notes tab for later review
+- **Import / Export Groups** — Share and backup your pattern groups easily using YAML
 - **Fully Customizable** — Create, edit, and delete your own groups and patterns
 - **Dark Theme** — Premium dark UI built for long sessions
 
@@ -81,6 +82,23 @@ JS Extractor scans **all JavaScript sources** on the current page — both inlin
 2. Click **"+ Add pattern"** to add a regex pattern to the active group
 3. Enter your regex and a description
 4. Patterns are saved locally and persist across sessions
+
+### Importing & Exporting Groups
+
+You can backup or share your custom pattern groups using the **Import** and **Export** buttons located in the popup header next to the "New Group" button. The extension uses a simple, readable YAML format for groups:
+
+```yaml
+js-extractor:
+  name: Group Name
+  patterns:
+    - regex: 'apiKey_[A-Za-z0-9]+'
+      description: 'Example pattern description'
+```
+
+## Community Pattern Groups
+
+Want to explore more patterns for specific frameworks, vulnerabilities, or technologies? 
+Check out **[js-extractor-groups](https://github.com/rdzsp/js-extractor-groups)** — a community-driven collection of pattern groups that you can seamlessly import into JS Extractor. Contributions are highly encouraged!
 
 ## Built-in Patterns
 
