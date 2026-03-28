@@ -85,7 +85,11 @@ JS Extractor scans **all JavaScript sources** on the current page — both inlin
 
 ### Importing & Exporting Groups
 
-You can backup or share your custom pattern groups using the **Import** and **Export** buttons located in the popup header next to the "New Group" button. The extension uses a simple, readable YAML format for groups:
+You can backup or share your custom pattern groups using the **Import** and **Export** buttons located in the popup header next to the "New Group" button. 
+- **Export**: Generates a `.yml` file backup of your active group.
+- **Import**: Opens a modal where you can directly paste your YAML string to securely import a group.
+
+The extension uses a simple, readable YAML format for groups:
 
 ```yaml
 js-extractor:

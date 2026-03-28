@@ -235,10 +235,31 @@
     </div>
   </div>
 
+  <!-- Import Confirm Modal -->
+  <div class="modal-overlay" id="modal-import" style="display:none">
+    <div class="modal">
+      <div class="modal-header">
+        <span class="modal-title" id="modal-import-title">Import Group (YAML)</span>
+        <button class="icon-btn modal-close" data-close="modal-import">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+            <path d="M2 2l10 10M12 2L2 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+          </svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <label class="field-label">Paste YAML here</label>
+        <textarea class="field-input mono" id="input-import-yaml" placeholder="js-extractor:\n  name: ...\n  patterns: ..." style="height: 120px; resize: none;" autocomplete="off"></textarea>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-ghost" data-close="modal-import">Cancel</button>
+        <button class="btn-primary" id="btn-confirm-import">Import</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Toast -->
   <div class="toast" id="toast"></div>
 
-  <input type="file" id="import-file" accept=".yaml,.yml" style="display:none" />
   <script src="js-yaml.min.js"></script>
   <script src="popup.js"></script>
 </body>

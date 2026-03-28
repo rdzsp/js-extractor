@@ -614,9 +614,11 @@ function setupTabs() {
 // ─── Header ───────────────────────────────────────────────────────────────────
 function setupHeaderButtons() {
   document.getElementById('btn-import-group').addEventListener('click', () => {
-    document.getElementById('import-file').click();
+    document.getElementById('input-import-yaml').value = '';
+    showModal('modal-import');
+    setTimeout(() => document.getElementById('input-import-yaml').focus(), 80);
   });
-  document.getElementById('import-file').addEventListener('change', handleImportGroup);
+  document.getElementById('btn-confirm-import').addEventListener('click', handleImportGroup);
   document.getElementById('btn-export-group').addEventListener('click', handleExportGroup);
 
   document.getElementById('btn-new-group').addEventListener('click', () => {
@@ -668,46 +670,40 @@ function handleExportGroup() {
   }
 }
 
-function handleImportGroup(e) {
-  const file = e.target.files[0];
-  if (!file) return;
+function handleImportGroup() {
+  const text = document.getElementById('input-import-yaml').value.trim();
+  if (!text) return;
   
-  const reader = new FileReader();
-  reader.onload = async (event) => {
-    try {
-      const text = event.target.result;
-      const data = jsyaml.load(text);
-      
-      if (!data || !data['js-extractor'] || !data['js-extractor'].name || !Array.isArray(data['js-extractor'].patterns)) {
-        throw new Error('Invalid YAML schema');
-      }
-      
-      const newGroupData = data['js-extractor'];
-      const newGroup = { 
-        id: 'g-' + Date.now(), 
-        name: newGroupData.name, 
-        patterns: newGroupData.patterns.map(p => ({
-          id: 'p-' + Math.random().toString(36).substr(2, 9),
-          regex: p.regex,
-          description: p.description || ''
-        }))
-      };
-      
-      state.groups.push(newGroup);
-      state.activeGroupId = newGroup.id;
-      
-      saveStorage();
-      renderGroups();
-      renderPatterns();
-      showToast('Group imported successfully', 'success');
-    } catch (err) {
-      showToast('Import failed: ' + err.message, 'error');
-      console.error(err);
-    } finally {
-      e.target.value = ''; // Reset input for future imports
+  try {
+    const data = jsyaml.load(text);
+    
+    if (!data || !data['js-extractor'] || !data['js-extractor'].name || !Array.isArray(data['js-extractor'].patterns)) {
+      throw new Error('Invalid YAML schema');
     }
-  };
-  reader.readAsText(file);
+    
+    const newGroupData = data['js-extractor'];
+    const newGroup = { 
+      id: 'g-' + Date.now(), 
+      name: newGroupData.name, 
+      patterns: newGroupData.patterns.map(p => ({
+        id: 'p-' + Math.random().toString(36).substr(2, 9),
+        regex: p.regex,
+        description: p.description || ''
+      }))
+    };
+    
+    state.groups.push(newGroup);
+    state.activeGroupId = newGroup.id;
+    
+    saveStorage();
+    renderGroups();
+    renderPatterns();
+    closeModal('modal-import');
+    showToast('Group imported successfully', 'success');
+  } catch (err) {
+    showToast('Import failed: ' + err.message, 'error');
+    console.error(err);
+  }
 }
 
 // ─── Group Modal ──────────────────────────────────────────────────────────────
