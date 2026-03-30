@@ -57,7 +57,7 @@ JS Extractor scans **all JavaScript sources** on the current page — both inlin
 
 ### Permanent Install
 
-[Firefox Add-ons](https://addons.mozilla.org/en-US/firefox/addon/js-extractor/) (Coming Soon)
+[Firefox Add-ons](https://addons.mozilla.org/en-US/firefox/addon/js-extractor/)
 
 ### From Source (Developer Mode)
 
